@@ -1,0 +1,35 @@
+Impact category,Unit,Total
+Climate change,kg CO2 eq,-0.669541963
+Ozone depletion,kg CFC11 eq,1.08844E-12
+Ionising radiation,kBq U-235 eq,0
+Photochemical ozone formation,kg NMVOC eq,0.000281993
+Particulate matter,disease inc.,1.12474E-09
+"Human toxicity, non-cancer",CTUh,4.66212E-10
+"Human toxicity, cancer",CTUh,4.61159E-12
+Acidification,mol H+ eq,0.000243941
+"Eutrophication, freshwater",kg P eq,4.78795E-06
+"Eutrophication, marine",kg N eq,0.000100124
+"Eutrophication, terrestrial",mol N eq,0.001100141
+"Ecotoxicity, freshwater",CTUe,0.639427397
+Land use,Pt,0
+Water use,m3 depriv.,0.001903759
+"Resource use, fossils",MJ,0.332654681
+"Resource use, minerals and metals",kg Sb eq,0
+Climate change - Fossil,kg CO2 eq,0.024622956
+Climate change - Biogenic,kg CO2 eq,-0.694164919
+Climate change - Land use and LU change,kg CO2 eq,0
+"Human toxicity, non-cancer - organics",CTUh,5.54328E-12
+"Human toxicity, non-cancer - inorganics",CTUh,1.9641E-10
+"Human toxicity, non-cancer - metals",CTUh,2.64426E-10
+"Human toxicity, cancer - organics",CTUh,9.5986E-13
+"Human toxicity, cancer - inorganics",CTUh,0
+"Human toxicity, cancer - metals",CTUh,3.65173E-12
+"Ecotoxicity, freshwater - organics",CTUe,0.000545501
+"Ecotoxicity, freshwater - inorganics",CTUe,0.148250026
+"Ecotoxicity, freshwater - metals",CTUe,0.49063187
+"Renewable, water",MJ,0
+"Renewable, wind, solar, geothe",MJ,0
+"Renewable, biomass",MJ,0
+"Non-renewable, biomass",MJ,0
+"Non-renewable, nuclear",MJ,0
+"Non renewable, fossil",MJ,0.332654681

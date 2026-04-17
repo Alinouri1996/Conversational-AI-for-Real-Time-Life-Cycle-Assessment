@@ -1,0 +1,18 @@
+process,module,amount,unit,file_name
+A1 - Wood-Raw Material (Biogenic Carbon),A1,566311,kg,A1 - Wood Raw Material.csv
+A2 - Transportatoin,A2,466.248,tkm,"A2 - Transport, freight, lorry 16-32 metric ton, euro5 {RoW}.csv"
+A3 - Chemical Treatment - Electricity,A3,683550,kWh,Electricity
+A3 - Chemical Treatment - H2O,A3,728025,kg,A3_H2O.csv
+A3 - Chemical Treatment - NaOH,A3,10889,kg,A3_NaOH.csv
+A3 - Chemical Treatment - Natural Gas,A3,19242108.64,MJ,A3_Natural Gas.csv
+A3 - Cutting/Trimming - Electricity,A3,72450,kWh,Electricity
+A3 - Dripping/Pre drying - Electricity,A3,1045800,kWh,Electricity
+A3 - Dripping/Pre drying 2- Electricity,A3,1045800,kWh,Electricity
+A3 - MP Chemical Treatment - Electricity,A3,418320,kWh,Electricity
+A3 - MP Chemical Treatment - H2O,A3,416681,kg,A3_H2O.csv
+A3 - MP Chemical Treatment - Natural Gas,A3,19242108.64,MJ,A3_Natural Gas.csv
+A3 - MP Chemical Treatment - MP,A3,83336,kg,A3_MP.csv
+A3 - Pressing - Electricity,A3,982800,kWh,Electricity
+A3 - Pressing - Natural Gas,A3,5317481.49,MJ,A3_Natural Gas.csv
+A3 - Surface finishing - Electricity,A3,333900,kWh,Electricity
+A4 - Transportatoin,A4,413517.6,tkm,"A2 - Transport, freight, lorry 16-32 metric ton, euro5 {RoW}.csv"

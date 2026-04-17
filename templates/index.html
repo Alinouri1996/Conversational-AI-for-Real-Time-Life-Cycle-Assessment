@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Simple LCA Tool</title>
+
+  <!-- Bootstrap + Chart.js -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Safe Markdown rendering for chatbot -->
+  <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.2/dist/markdown-it.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; padding: 30px; }
+    h1 { text-align: center; margin-bottom: 40px; }
+    .section { background-color: #ffffff; padding: 20px; margin-bottom: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+
+    .energy-mix-container { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; align-items: flex-start; }
+    .energy-table { flex: 1 1 500px; max-width: 500px; }
+    .energy-chart { flex: 1 1 450px; max-width: 450px; }
+    #energyChart { width: 100% !important; height: auto !important; }
+
+    table { font-size: 0.9rem; table-layout: fixed; width: 100%; margin: auto; }
+    th, td { text-align: center; vertical-align: middle; word-wrap: break-word; }
+    th { background-color: #e9ecef; }
+
+    .btn-custom { background-color: #007bff; color: white; }
+    .btn-custom:hover { background-color: #0056b3; }
+
+    /* Chat layout */
+    .user-bubble { background-color: #d1e7dd; padding: 8px 12px; margin: 8px 0; border-radius: 15px; align-self: flex-end; max-width: 70%; margin-left: auto; font-size: 0.95rem; }
+    .bot-bubble  { background-color: #e2e3e5; padding: 8px 12px; margin: 8px 0; border-radius: 15px; align-self: flex-start; max-width: 70%; font-size: 0.95rem; }
+    #chat-window { height: 400px; overflow-y: auto; border: 1px solid #ccc; border-radius: 10px; padding: 10px; background: #fdfdfd; margin-bottom: 10px; }
+
+    .chat-container { max-width: 960px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.05); padding: 20px; }
+    .chat-title { font-weight: 600; font-size: 1.25rem; margin-bottom: 10px; }
+    .input-area { display: flex; gap: 10px; margin-top: 10px; }
+    .input-area input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
+    .input-area button { padding: 10px 20px; background-color: #1e88e5; color: white; border: none; border-radius: 8px; transition: 0.3s; }
+    .input-area button:hover { background-color: #0d47a1; }
+    .complexity-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
+    .complexity-bar label { font-weight: 500; }
+
+    /* Chatbot card styling */
+    .bot-card { background:#fff; border:1px solid #e9ecef; border-radius:12px; padding:14px 16px; margin:10px 0; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    .bot-card .card-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+    .badge-intent { background:#e8f0fe; color:#0b57d0; border:1px solid #c7dbff; }
+    .badge-ok     { background:#e6f4ea; color:#1e7e34; border:1px solid #b8e5c0; }
+    .badge-warn   { background:#fff4e5; color:#b04a00; border:1px solid #ffd8a8; }
+    .badge-err    { background:#fde7e9; color:#b42318; border:1px solid #f5c2c7; }
+
+    /* Rendered markdown tweaks */
+    .markdown { font-size: 0.95rem; }
+    .markdown h3, .markdown h4 { margin: 6px 0; }
+    .markdown p { margin: 0 0 8px 0; }
+    .markdown ul, .markdown ol { margin: 0 0 8px 20px; }
+    .markdown table { width: 100%; }
+    .markdown th, .markdown td { padding: 6px 8px; }
+    .markdown code { background: #f6f8fa; padding: 2px 6px; border-radius: 6px; }
+
+    /* Collapsible content block */
+    .detail-wrap { margin-top: 10px; }
+    .detail-toggle { cursor: pointer; user-select:none; display:inline-flex; align-items:center; gap:6px; }
+    .detail-content { display:none; margin-top:10px; }
+    .detail-open .detail-content { display:block; }
+    .detail-open .bi-caret-right-fill { transform: rotate(90deg); }
+  </style>
+</head>
+
+<body>
+  <h1>Simple LCA Calculator</h1>
+
+  <!-- Section 1: Modify Energy Mix -->
+  <div class="section">
+    <h4>1. Modify Energy Mix</h4>
+    <form id="energy-form">
+      <div class="energy-mix-container">
+        <div class="energy-table table-responsive">
+          <table class="table table-bordered table-sm align-middle">
+            <thead class="table-light">
+              <tr><th>Source</th><th>Percentage (%)</th></tr>
+            </thead>
+            <tbody id="energy-body"></tbody>
+          </table>
+          <button class="btn btn-custom mt-2" type="submit">Update Energy Mix</button>
+        </div>
+        <div class="energy-chart">
+          <canvas id="energyChart"></canvas>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Section 2: Modify LCA Inputs -->
+  <div class="section">
+    <h4>2. Modify LCA Inputs</h4>
+    <form id="lca-form">
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle">
+          <thead class="table-light">
+            <tr><th>Process</th><th>Module</th><th>Amount</th><th>Unit</th></tr>
+          </thead>
+          <tbody id="lca-body"></tbody>
+        </table>
+      </div>
+      <button class="btn btn-custom mt-2" type="submit">Update LCA Results</button>
+    </form>
+  </div>
+
+  <!-- Section 3: LCA Results -->
+  <div class="section">
+    <h4>3. LCA Results</h4>
+    <div class="table-responsive">
+      <table class="table table-bordered table-sm align-middle">
+        <thead class="table-light"><tr id="result-header"></tr></thead>
+        <tbody id="result-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Section 4: Environmental Impact by Module -->
+  <div class="section">
+    <h4>4. Environmental Impact by Module</h4>
+    <div class="row g-2 align-items-center mb-3">
+      <div class="col-auto">
+        <label for="impactSelect" class="form-label mb-0">Select Impact Category:</label>
+      </div>
+      <div class="col-auto" style="min-width: 250px;">
+        <select id="impactSelect" class="form-select form-select-sm" style="max-width: 300px;"></select>
+      </div>
+    </div>
+    <div style="height: 600px;">
+      <canvas id="impactBarChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Section 5: Scenario Analysis -->
+  <div class="section">
+    <h4>5. Scenario Analysis</h4>
+    <div id="scenario-container"></div>
+    <button class="btn btn-sm btn-secondary" onclick="addScenarioBlock()">Add Scenario</button>
+    <button class="btn btn-custom btn-sm" onclick="runScenarioAnalysis()">Run Scenario Analysis</button>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mt-4" id="scenarioTabs" role="tablist">
+      <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#totalImpacts">Total Impacts</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#impactTable">Impact by Module</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#impactGraph">Impact Chart</button>
+      </li>
+    </ul>
+
+    <div class="tab-content mt-3">
+      <div class="tab-pane fade show active" id="totalImpacts">
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm">
+            <thead id="totalImpactHead"></thead>
+            <tbody id="totalImpactBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="tab-pane fade" id="impactTable">
+        <label class="form-label">Select Impact Category:</label>
+        <select id="compareImpactSelect" class="form-select form-select-sm mb-2" onchange="renderImpactComparisonTable()"></select>
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm">
+            <thead id="moduleCompareHead"></thead>
+            <tbody id="moduleCompareBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="tab-pane fade" id="impactGraph">
+        <div style="max-width: 800px; margin: 0 auto;">
+          <canvas id="scenarioBarChart" width="700" height="550" style="max-width: 100%;"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 6: Sensitivity Analysis -->
+  <div class="section">
+    <h4>6. Sensitivity Analysis</h4>
+    <div class="mb-3">
+      <label for="sensitivityImpact" class="form-label">Select Impact Category:</label>
+      <select id="sensitivityImpact"></select>
+      <button class="btn btn-sm btn-custom" onclick="runSensitivityAnalysis()">Run Sensitivity Analysis</button>
+    </div>
+    <div style="width: 100%; max-width: 900px; height: 500px; margin: auto;">
+      <canvas id="sensitivityChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Section 7: Chatbot -->
+  <div class="section chat-container">
+    <div class="chat-title">7. Chat with LCA Assistant</div>
+
+    <!-- Complexity Slider -->
+    <div class="complexity-bar" style="max-width: 500px">
+      <label for="complexityRange">Response Complexity:</label>
+      <input type="range" min="1" max="3" step="1" id="complexityRange" value="1"/>
+      <span id="complexityLevel">Low</span>
+    </div>
+
+    <!-- Chat window -->
+    <div id="chat-window"></div>
+
+    <!-- Input -->
+    <div class="input-area">
+      <input type="text" id="user-input" placeholder="Ask me about your LCA analysis..."/>
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <!-- Data + Logic -->
+  <script>
+    let energyMix = {{ energy_mix|tojson }};
+    let lcaInput  = {{ lca_input|tojson }};
+    let resultData = [];
+    let energyChart;
+    let impactBarChart;
+    let scenarioCounter = 0;
+    const scenarioResults = {};
+    const colorPalette = ['#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd','#8c564b','#e377c2','#7f7f7f','#bcbd22','#17becf'];
+
+    // Markdown renderer + sanitizer (for chatbot)
+    const md = window.markdownit({ breaks: true, linkify: true });
+    function mdToHtml(s) {
+      const html = md.render(String(s || ''));
+      return DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
+    }
+    function badge(text, cls) {
+      return `<span class="badge ${cls}" style="padding:5px 8px; border-radius:10px;">${text}</span>`;
+    }
+    function collapsibleBlock(titleHtml, innerHtml, open=false) {
+      const id = 'det-' + Math.random().toString(36).slice(2, 8);
+      return `
+        <div class="detail-wrap ${open ? 'detail-open':''}" id="${id}">
+          <div class="detail-toggle text-primary" onclick="document.getElementById('${id}').classList.toggle('detail-open')">
+            <i class="bi bi-caret-right-fill"></i> ${titleHtml}
+          </div>
+          <div class="detail-content">${innerHtml}</div>
+        </div>`;
+    }
+    function renderObjectTable(rows) {
+      if (!rows || !rows.length) return "<div class='text-muted'>No data.</div>";
+      const cols = Object.keys(rows[0]);
+      const thead = `<thead class="table-light"><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>`;
+      const tbody = `<tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${r[c] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>`;
+      return `<div class="table-responsive"><table class="table table-bordered table-sm">${thead}${tbody}</table></div>`;
+    }
+
+    // Energy Mix UI
+    const energyBody   = document.getElementById('energy-body');
+    const lcaBody      = document.getElementById('lca-body');
+    const resultHeader = document.getElementById('result-header');
+    const resultBody   = document.getElementById('result-body');
+
+    function loadEnergyForm() {
+      energyBody.innerHTML = '';
+      for (const [key, value] of Object.entries(energyMix)) {
+        energyBody.innerHTML += `
+          <tr>
+            <td>${key}</td>
+            <td><input class="form-control" type="number" name="${key}" value="${value}" step="any" min="0" max="100" required></td>
+          </tr>`;
+      }
+      updateEnergyChart();
+    }
+    function loadLCAForm() {
+      lcaBody.innerHTML = '';
+      for (const [key, val] of Object.entries(lcaInput)) {
+        lcaBody.innerHTML += `
+          <tr>
+            <td>${key}</td>
+            <td>${val.module}</td>
+            <td><input class="form-control" type="number" name="${key}" value="${val.Amount}" step="any"></td>
+            <td>${val.Unit}</td>
+          </tr>`;
+      }
+    }
+    function updateEnergyChart() {
+      const labels = Object.keys(energyMix);
+      const values = Object.values(energyMix);
+      if (energyChart) energyChart.destroy();
+      const ctx = document.getElementById('energyChart').getContext('2d');
+      energyChart = new Chart(ctx, {
+        type: 'pie',
+        data: { labels, datasets: [{ data: values, backgroundColor: colorPalette.slice(0, labels.length) }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend:{ position:'right' }, title:{ display:true, text:'Energy Source Contribution (%)' } }
+        }
+      });
+    }
+    document.getElementById('energy-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const data = {};
+      new FormData(e.target).forEach((v, k) => data[k] = parseFloat(v));
+      await fetch('/update_energy_mix', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ energy_mix: data }) });
+      energyMix = data;
+      updateEnergyChart();
+      alert("Energy mix updated.");
+    };
+    document.getElementById('lca-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const data = {};
+      new FormData(e.target).forEach((v, k) => { data[k] = { Amount: parseFloat(v) }; });
+      const response = await fetch('/update_lca_input', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ lca_input: data }) });
+      const result = await response.json();
+      renderResult(result);
+    };
+
+    function renderResult(data) {
+      if (!data || !data.length) {
+        resultHeader.innerHTML = "<th>No Data</th>";
+        resultBody.innerHTML = "<tr><td>No results to display.</td></tr>";
+        return;
+      }
+      resultData = data;
+      resultHeader.innerHTML = Object.keys(data[0]).map(col => `<th>${col}</th>`).join('');
+      resultBody.innerHTML = data.map(row => `<tr>${
+        Object.values(row).map(val => {
+          let n = Number(val);
+          return `<td>${!isNaN(n) ? n.toExponential(3) : val}</td>`;
+        }).join('')
+      }</tr>`).join('');
+
+      const categories = [...new Set(data.map(row => row["Impact category"]))];
+      const select = document.getElementById("impactSelect");
+      select.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+      select.onchange = () => drawImpactBarChart(select.value);
+      if (categories.length > 0) drawImpactBarChart(categories[0]);
+    }
+    function drawImpactBarChart(category) {
+      const selected = resultData.find(row => row["Impact category"] === category);
+      if (!selected) return;
+      const modules = Object.keys(selected).filter(k => !["Impact category","Unit"].includes(k));
+      const values  = modules.map(m => parseFloat(selected[m] || 0));
+      const unit    = selected["Unit"] || "";
+      const ctx = document.getElementById('impactBarChart').getContext('2d');
+      if (impactBarChart) impactBarChart.destroy();
+      impactBarChart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: modules, datasets: [{ label: `${category} (${unit})`, data: values, backgroundColor: 'rgba(54, 162, 235, 0.7)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth:1 }] },
+        options: {
+          responsive:true,
+          plugins:{ legend:{ labels:{ font:{ size:18 }}}, title:{ display:true, text:'Environmental Impact by Module', font:{ size:22 } } },
+          scales:{
+            x:{ title:{ display:true, text:'Modules', font:{ size:20 } }, ticks:{ font:{ size:18 } } },
+            y:{ beginAtZero:true, title:{ display:true, text:`Environmental Impact (${unit})`, font:{ size:20 } }, ticks:{ callback:(v)=>Number(v).toExponential(2), font:{ size:18 } } }
+          }
+        }
+      });
+    }
+
+    // Scenario Analysis
+    function addScenarioBlock() {
+      const container = document.getElementById("scenario-container");
+      const wrapper = document.createElement("div");
+      wrapper.classList.add("border", "p-3", "mb-3", "rounded");
+      wrapper.innerHTML = `
+        <h6>Scenario ${scenarioCounter + 1}</h6>
+        <div class="row">
+          <div class="col-md-6">
+            <h6>Energy Mix</h6>
+            <table class="table table-bordered table-sm">
+              <thead><tr><th>Source</th><th>Percentage (%)</th></tr></thead>
+              <tbody id="energy-body-${scenarioCounter}"></tbody>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <h6>LCA Inputs</h6>
+            <table class="table table-bordered table-sm">
+              <thead><tr><th>Process</th><th>Amount</th></tr></thead>
+              <tbody id="lca-body-${scenarioCounter}"></tbody>
+            </table>
+          </div>
+        </div>`;
+      container.appendChild(wrapper);
+      loadScenarioForms(scenarioCounter);
+      scenarioCounter++;
+    }
+    function loadScenarioForms(index) {
+      const energyBody = document.getElementById(`energy-body-${index}`);
+      const lcaBody = document.getElementById(`lca-body-${index}`);
+      energyBody.innerHTML = Object.entries(energyMix).map(([key, val]) =>
+        `<tr><td>${key}</td><td><input class="form-control form-control-sm" name="energy-${index}-${key}" type="number" value="${val}" step="any"></td></tr>`
+      ).join('');
+      lcaBody.innerHTML = Object.entries(lcaInput).map(([key, val]) =>
+        `<tr><td>${key}</td><td><input class="form-control form-control-sm" name="lca-${index}-${key}" type="number" value="${val.Amount}" step="any"></td></tr>`
+      ).join('');
+    }
+    async function runScenarioAnalysis() {
+      const scenarios = {};
+      for (let i = 0; i < scenarioCounter; i++) {
+        const energy = {}, lca = {};
+        Object.keys(energyMix).forEach(key => { const val = document.querySelector(`[name='energy-${i}-${key}']`).value; energy[key] = parseFloat(val); });
+        Object.keys(lcaInput).forEach(key => { const val = document.querySelector(`[name='lca-${i}-${key}']`).value; lca[key] = { Amount: parseFloat(val) }; });
+        scenarios[`Scenario ${i + 1}`] = { energy_mix: energy, lca_input: lca };
+      }
+      const res = await fetch('/compare_scenarios', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scenarios }) });
+      const results = await res.json();
+      Object.assign(scenarioResults, results);
+      renderTotalImpacts(); renderImpactOptions(); renderScenarioBarChart(); populateSensitivityImpactOptions();
+    }
+    function renderTotalImpacts() {
+      const head = document.getElementById("totalImpactHead");
+      const body = document.getElementById("totalImpactBody");
+      const rows = {};
+      for (const [scenario, data] of Object.entries(scenarioResults)) {
+        data.forEach(row => {
+          const key = row["Impact category"] + row["Unit"];
+          if (!rows[key]) rows[key] = { "Impact category": row["Impact category"], Unit: row.Unit };
+          const total = Object.entries(row).filter(([k]) => !["Impact category","Unit"].includes(k)).reduce((s,[,v]) => s + parseFloat(v || 0), 0);
+          rows[key][scenario] = total;
+        });
+      }
+      const scenarios = Object.keys(scenarioResults);
+      head.innerHTML = `<tr><th>Impact Category</th><th>Unit</th>${scenarios.map(s => `<th>${s}</th>`).join('')}</tr>`;
+      body.innerHTML = Object.values(rows).map(r =>
+        `<tr><td>${r["Impact category"]}</td><td>${r.Unit}</td>${scenarios.map(s => `<td>${(r[s] || 0).toExponential(2)}</td>`).join('')}</tr>`
+      ).join('');
+    }
+    function renderImpactOptions() {
+      const select = document.getElementById("compareImpactSelect");
+      const categories = [...new Set(Object.values(scenarioResults).flat().map(r => r["Impact category"]))];
+      select.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+      renderImpactComparisonTable();
+    }
+    function renderImpactComparisonTable() {
+      const selected = document.getElementById("compareImpactSelect").value;
+      const head = document.getElementById("moduleCompareHead");
+      const body = document.getElementById("moduleCompareBody");
+      const moduleMap = {};
+      const scenarios = Object.keys(scenarioResults);
+      for (const [scenario, data] of Object.entries(scenarioResults)) {
+        data.filter(row => row["Impact category"] === selected).forEach(row => {
+          Object.entries(row).forEach(([k, v]) => {
+            if (!["Impact category","Unit"].includes(k)) {
+              if (!moduleMap[k]) moduleMap[k] = { module: k };
+              moduleMap[k][scenario] = parseFloat(v);
+            }
+          });
+        });
+      }
+      head.innerHTML = `<tr><th>Module</th>${scenarios.map(s => `<th>${s}</th>`).join('')}</tr>`;
+      body.innerHTML = Object.values(moduleMap).map(m =>
+        `<tr><td>${m.module}</td>${scenarios.map(s => `<td>${(m[s] || 0).toExponential(2)}</td>`).join('')}</tr>`
+      ).join('');
+      renderScenarioBarChart(selected);
+    }
+    function renderScenarioBarChart(category = null) {
+      const canvas = document.getElementById("scenarioBarChart");
+      const ctx = canvas.getContext("2d");
+      if (!category) {
+        const select = document.getElementById("compareImpactSelect");
+        if (!select || !select.value) return;
+        category = select.value;
+      }
+      const scenarios = Object.keys(scenarioResults);
+      if (scenarios.length === 0) return;
+
+      const modules = new Set();
+      const datasets = [];
+      scenarios.forEach((scenario, idx) => {
+        const dataRow = scenarioResults[scenario].find(row => row["Impact category"] === category);
+        if (!dataRow) return;
+        const rowModules = Object.entries(dataRow).filter(([k]) => !["Impact category","Unit"].includes(k)).map(([k, v]) => {
+          modules.add(k); return [k, parseFloat(v || 0)];
+        });
+        const valuesByModule = Object.fromEntries(rowModules);
+        datasets.push({ label: scenario, data: Array.from(modules).map(m => valuesByModule[m] || 0), backgroundColor: colorPalette[idx % colorPalette.length], borderWidth: 1 });
+      });
+      const labels = Array.from(modules);
+      if (window.scenarioBarChart instanceof Chart) window.scenarioBarChart.destroy();
+      window.scenarioBarChart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          plugins: {
+            title: { display: true, text: `Module-wise Comparison: ${category}`, font: { size: 22, weight: "bold" } },
+            legend: { position: 'top', labels: { font: { size: 18 } } }
+          },
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: "Impact Value", font: { size: 20 } }, ticks: { font: { size: 18 }, callback: v => Number(v).toExponential(2) } },
+            x: { title: { display: true, text: "Modules", font: { size: 20 } }, ticks: { font: { size: 18 } } }
+          }
+        }
+      });
+    }
+    const impactGraphBtn = document.querySelector('button[data-bs-target="#impactGraph"]');
+    if (impactGraphBtn) impactGraphBtn.addEventListener('click', () => renderScenarioBarChart());
+
+    // Sensitivity Analysis
+    async function runSensitivityAnalysis() {
+      const impactCategory = document.getElementById("sensitivityImpact").value;
+      const baseEnergy = {};
+      Object.keys(energyMix).forEach(key => {
+        const val = document.querySelector(`[name='energy-0-${key}']`);
+        baseEnergy[key] = val ? parseFloat(val.value) : 0;
+      });
+      const baseLCA = {};
+      Object.keys(lcaInput).forEach(key => {
+        const amountInput = document.querySelector(`[name='lca-0-${key}']`);
+        const meta = lcaInput[key];
+        if (amountInput && meta) {
+          baseLCA[key] = { Amount: parseFloat(amountInput.value), module: meta.module, Unit: meta.Unit, file_name: meta.file_name };
+        }
+      });
+      const response = await fetch('/sensitivity_analysis', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ base: { energy_mix: baseEnergy, lca_input: baseLCA } }) });
+      const json = await response.json();
+      if (!json.results) { alert("Sensitivity analysis failed: " + (json.error || "No results")); return; }
+      const chartData = json.results.map(item => ({ input: item.input || item.Input, value: item.variation[impactCategory] }));
+      drawSensitivityChart(chartData, impactCategory);
+    }
+    function drawSensitivityChart(data, category) {
+      const ctx = document.getElementById("sensitivityChart").getContext("2d");
+      const labels = data.map(d => d.input);
+      const values = data.map(d => d.value);
+      const colors = values.map(v => v >= 0 ? "rgba(231, 76, 60, 0.7)" : "rgba(52, 152, 219, 0.7)");
+      if (window.sensitivityChart instanceof Chart) window.sensitivityChart.destroy();
+      window.sensitivityChart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: [{ label: `% Change in ${category}`, data: values, backgroundColor: colors, borderColor: colors.map(c => c.replace("0.7", "1")), borderWidth: 1 }] },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: {
+            title: { display: true, text: `Sensitivity Analysis: Impact of Inputs on ${category}`, font: { size: 20, weight: 'bold', family: 'Arial' }, padding: { top: 10, bottom: 20 } },
+            legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.parsed.x.toFixed(2)}%` }, bodyFont: { size: 14 } }
+          },
+          scales: {
+            x: { title: { display: true, text: 'Percentage Change (%)', font: { size: 16, weight: 'bold' } }, ticks: { callback: v => Number(v).toFixed(2) + '%', font: { size: 14 } } },
+            y: { title: { display: true, text: 'Input Processes', font: { size: 16, weight: 'bold' } }, ticks: { font: { size: 14 } } }
+          }
+        }
+      });
+    }
+    function populateSensitivityImpactOptions() {
+      const allResults = Object.values(scenarioResults || {}).flat();
+      const categories = [...new Set(allResults.map(r => r["Impact category"]))];
+      const select = document.getElementById("sensitivityImpact");
+      select.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+    }
+
+    // Complexity slider label
+    const complexitySlider = document.getElementById("complexityRange");
+    const complexityLabel  = document.getElementById("complexityLevel");
+    complexitySlider.addEventListener("input", () => {
+      const val = parseInt(complexitySlider.value, 10);
+      complexityLabel.textContent = val === 1 ? "Low" : val === 2 ? "Medium" : "High";
+    });
+
+    // Chat UI helpers
+    function addMessage(content, sender = "bot") {
+      const chatWindow = document.getElementById("chat-window");
+      const bubble = document.createElement("div");
+      bubble.className = sender === "user" ? "user-bubble" : "bot-bubble";
+      bubble.innerHTML = content;
+      chatWindow.appendChild(bubble);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const inputField = document.getElementById("user-input");
+      const userMessage = inputField.value.trim();
+      if (!userMessage) return;
+      const complexity = parseInt(document.getElementById("complexityRange").value, 10);
+
+      addMessage(`<strong>You:</strong> ${userMessage}`, "user");
+      inputField.value = "";
+      addMessage("Typing...", "bot");
+
+      try {
+        const response = await fetch("/chatbot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: userMessage, complexity })
+        });
+        const data = await response.json();
+
+        // remove "Typing..."
+        const allBubbles = document.querySelectorAll("#chat-window .bot-bubble");
+        const typingBubble = allBubbles[allBubbles.length - 1];
+        if (typingBubble && typingBubble.innerText.includes("Typing...")) typingBubble.remove();
+
+        // payload
+        const payload = data.data || {};
+        const cx = complexity;
+
+        // Prefer AI-tailored markdown; otherwise use plain response as markdown
+        let bodyHtml = "";
+        if (payload.presentation && payload.presentation.markdown) {
+          bodyHtml = mdToHtml(payload.presentation.markdown);
+        } else if (data.response) {
+          bodyHtml = mdToHtml(data.response);
+        } else {
+          bodyHtml = "<em>No content.</em>";
+        }
+
+        // badges
+        const statusBadge = data.status === "ok"     ? badge("OK","badge-ok")
+                         : data.status === "error"   ? badge("Error","badge-err")
+                         : badge("Action needed","badge-warn");
+        const intentBadge = badge((data.intent || "general").replaceAll("_"," "), "badge-intent");
+
+        // card
+        let html = `<div class="bot-card">
+          <div class="card-head">${intentBadge} ${statusBadge}</div>
+          <div class="markdown">${bodyHtml}</div>`;
+
+        // Only show summaries/tables at Medium/High
+        if (cx >= 2) {
+          if (payload.summary) {
+            const ind = payload.summary.totals_by_indicator || {};
+            const mod = payload.summary.totals_by_module || {};
+            const list1 = Object.entries(ind).map(([k,v]) => `<li><strong>${k}</strong>: ${v}</li>`).join('');
+            const list2 = Object.entries(mod).map(([k,v]) => `<li><strong>${k}</strong>: ${v}</li>`).join('');
+            const sumHtml = `<div class="row">
+                <div class="col-md-6"><h6>Totals by Indicator</h6><ul>${list1 || "<li>—</li>"}</ul></div>
+                <div class="col-md-6"><h6>Totals by Module</h6><ul>${list2 || "<li>—</li>"}</ul></div>
+              </div>`;
+            html += collapsibleBlock("<strong>Summary totals</strong>", sumHtml, false);
+          }
+          if (payload.table && Array.isArray(payload.table) && payload.table.length) {
+            const tableHtml = renderObjectTable(payload.table);
+            html += collapsibleBlock("<strong>Detailed results table</strong>", tableHtml, cx === 3);
+          }
+        }
+
+        // warnings
+        if (payload.warnings && payload.warnings.length) {
+          html += `<div class="alert alert-warning mt-2" role="alert">
+            <strong>Warnings</strong>
+            <ul>${payload.warnings.map(w=>`<li>${w}</li>`).join('')}</ul>
+          </div>`;
+        }
+
+        html += `</div>`;
+        addMessage(html, "bot");
+      } catch (err) {
+        const allBubbles = document.querySelectorAll("#chat-window .bot-bubble");
+        const typingBubble = allBubbles[allBubbles.length - 1];
+        if (typingBubble && typingBubble.innerText.includes("Typing...")) typingBubble.remove();
+        addMessage("<strong>Assistant:</strong> Something went wrong.", "bot");
+      }
+    }
+
+    // Initial page load
+    window.onload = async () => {
+      loadEnergyForm();
+      loadLCAForm();
+      const response = await fetch('/update_lca_input', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lca_input: {} })
+      });
+      const result = await response.json();
+      renderResult(result);
+    };
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
